@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:17
+
+    container_name: construction-postgres
+
+    restart: always
+
+    environment:
+      POSTGRES_DB: construction_workforce_db
+      POSTGRES_USER: construction_admin
+      POSTGRES_PASSWORD: YOUR_PASSWORD
+
+    ports:
+      - "5432:5432"
+
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
