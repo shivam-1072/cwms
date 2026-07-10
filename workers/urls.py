@@ -9,5 +9,13 @@ urlpatterns = [
     # Add these new lines
     path('attendance/', views.attendance_list, name='attendance_list'),
     path('attendance/create/', views.attendance_create, name='attendance_create'),
+
+    path('payroll/', views.payroll_list, name='payroll_list'),
+    path('payroll/generate/', views.generate_payroll, name='generate_payroll'),
+    path('payroll/export/', views.export_payroll_csv, name='export_payroll_csv'),
+
+    path('expenses/', views.expense_list, name='expense_list'),
+    path('expenses/create/', views.expense_create, name='expense_create'),
+    path('expenses/<int:pk>/delete/', views.expense_delete, name='expense_delete'),
 ]
 

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Generate Payroll</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .form-group { margin: 10px 0; }
+        label { display: inline-block; width: 120px; font-weight: bold; }
+        input, select { padding: 5px; width: 200px; }
+        .btn { padding: 8px 15px; margin: 5px; cursor: pointer; }
+        .btn-generate { background: #4CAF50; color: white; border: none; }
+        .btn-cancel { background: #666; color: white; text-decoration: none; padding: 8px 15px; }
+        .info { background: #d4edda; padding: 10px; margin: 10px 0; border: 1px solid #c3e6cb; }
+    </style>
+</head>
+<body>
+    <h1>Generate Monthly Payroll</h1>
+    
+    <div class="info">
+        <p>This will calculate salaries for all workers for the selected month.</p>
+        <p>It uses attendance records to calculate working days and leave deductions.</p>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>Select Month:</label>
+            <input type="month" name="month" value="{{ today|date:'Y-m' }}" required>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-generate">Generate Payroll</button>
+            <a href="{% url 'payroll_list' %}" class="btn-cancel">Cancel</a>
+        </div>
+    </form>
+</body>
+</html>

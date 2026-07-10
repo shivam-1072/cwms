@@ -1,21 +1,23 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:17
-
     container_name: construction-postgres
-
-    restart: always
-
+    restart: unless-stopped
     environment:
       POSTGRES_DB: construction_workforce_db
       POSTGRES_USER: construction_admin
-      POSTGRES_PASSWORD: YOUR_PASSWORD
-
+      POSTGRES_PASSWORD: Cwmsadmin
     ports:
       - "5432:5432"
-
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U construction_user -d construction_workforce_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   postgres_data:
