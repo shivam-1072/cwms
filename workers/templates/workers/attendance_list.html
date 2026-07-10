@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Attendance List</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #4CAF50; color: white; }
+        .btn { padding: 5px 10px; margin: 2px; text-decoration: none; color: white; }
+        .btn-add { background: #4CAF50; }
+        .present { background: #d4edda; }
+        .absent { background: #f8d7da; }
+        .paid_leave { background: #fff3cd; }
+        .unpaid_leave { background: #e2e3e5; }
+    </style>
+</head>
+<body>
+    <h1>Attendance</h1>
+    <a href="{% url 'attendance_create' %}" class="btn btn-add">Mark Attendance</a>
+    
+    <table>
+        <thead>
+            <tr>
+                <th>Worker</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Site</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for attendance in attendances %}
+            <tr class="{{ attendance.status }}">
+                <td>{{ attendance.worker.name }}</td>
+                <td>{{ attendance.date }}</td>
+                <td>{{ attendance.get_status_display }}</td>
+                <td>{{ attendance.worker.site.name|default:"Not Assigned" }}</td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="4">No attendance records found.</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

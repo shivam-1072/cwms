@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mark Attendance</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .form-group { margin: 10px 0; }
+        label { display: inline-block; width: 120px; font-weight: bold; }
+        input, select { padding: 5px; width: 200px; }
+        .btn { padding: 8px 15px; margin: 5px; cursor: pointer; }
+        .btn-save { background: #4CAF50; color: white; border: none; }
+        .btn-cancel { background: #666; color: white; text-decoration: none; padding: 8px 15px; }
+    </style>
+</head>
+<body>
+    <h1>Mark Attendance</h1>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>Worker:</label>
+            <select name="worker" required>
+                <option value="">Select Worker</option>
+                {% for worker in workers %}
+                    <option value="{{ worker.id }}">{{ worker.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Date:</label>
+            <input type="date" name="date" value="{{ today|date:'Y-m-d' }}">
+        </div>
+        <div class="form-group">
+            <label>Status:</label>
+            <select name="status">
+                <option value="present">Present</option>
+                <option value="absent">Absent</option>
+                <option value="paid_leave">Paid Leave</option>
+                <option value="unpaid_leave">Unpaid Leave</option>
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-save">Save</button>
+            <a href="{% url 'attendance_list' %}" class="btn-cancel">Cancel</a>
+        </div>
+    </form>
+</body>
+</html>

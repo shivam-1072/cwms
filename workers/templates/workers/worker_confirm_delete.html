@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Delete Worker</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .warning { background: #f44336; color: white; padding: 10px; }
+        .btn { padding: 8px 15px; margin: 5px; cursor: pointer; }
+        .btn-danger { background: #f44336; color: white; border: none; }
+        .btn-cancel { background: #666; color: white; text-decoration: none; padding: 8px 15px; }
+    </style>
+</head>
+<body>
+    <h1>Delete Worker</h1>
+    <div class="warning">
+        <p>Are you sure you want to delete "{{ worker.name }}"?</p>
+        <p>This action cannot be undone.</p>
+    </div>
+    
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Confirm Delete</button>
+        <a href="{% url 'worker_list' %}" class="btn-cancel">Cancel</a>
+    </form>
+</body>
+</html>

@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% if worker %}Edit{% else %}Add{% endif %} Worker</title>
+    <style>
+        body { font-family: Arial; margin: 20px; }
+        .form-group { margin: 10px 0; }
+        label { display: inline-block; width: 120px; font-weight: bold; }
+        input, select { padding: 5px; width: 200px; }
+        .btn { padding: 8px 15px; margin: 5px; cursor: pointer; }
+        .btn-save { background: #4CAF50; color: white; border: none; }
+        .btn-cancel { background: #666; color: white; text-decoration: none; padding: 8px 15px; }
+    </style>
+</head>
+<body>
+    <h1>{% if worker %}Edit{% else %}Add{% endif %} Worker</h1>
+    
+    <form method="post">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>Name:</label>
+            <input type="text" name="name" value="{{ worker.name|default:'' }}" required>
+        </div>
+        <div class="form-group">
+            <label>Phone:</label>
+            <input type="text" name="phone" value="{{ worker.phone|default:'' }}" required>
+        </div>
+        <div class="form-group">
+            <label>Joining Date:</label>
+            <input type="date" name="joining_date" value="{{ worker.joining_date|date:'Y-m-d'|default:'' }}" required>
+        </div>
+        <div class="form-group">
+            <label>Daily Wage:</label>
+            <input type="number" step="0.01" name="daily_wage" value="{{ worker.daily_wage|default:'' }}" required>
+        </div>
+        <div class="form-group">
+            <label>Site:</label>
+            <select name="site">
+                <option value="">None</option>
+                {% for site in sites %}
+                    <option value="{{ site.id }}" {% if worker and worker.site.id == site.id %}selected{% endif %}>
+                        {{ site.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-save">Save</button>
+            <a href="{% url 'worker_list' %}" class="btn-cancel">Cancel</a>
+        </div>
+    </form>
+</body>
+</html>
