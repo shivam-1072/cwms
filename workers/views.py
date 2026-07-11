@@ -8,6 +8,9 @@ from django.db.models import Count, Q
 from decimal import Decimal
 from django.http import HttpResponse
 import csv
+from django.db.models import Sum, Count
+from django.utils import timezone
+from datetime import timedelta
 
 # Create your views here.
 
@@ -230,3 +233,75 @@ def expense_delete(request, pk):
         messages.success(request, 'Expense deleted successfully!')
         return redirect('expense_list')
     return render(request, 'workers/expense_confirm_delete.html', {'expense': expense})
+
+
+def dashboard(request):
+    # Get current month and week
+    today = timezone.now().date()
+    month_start = today.replace(day=1)
+    week_start = today - timedelta(days=today.weekday())
+
+    # Worker statistics
+    total_workers = Worker.objects.count()
+    total_sites = Site.objects.count()
+
+    # Attendance statistics (current month)
+    monthly_attendance = Attendance.objects.filter(
+        date__gte=month_start
+    ).values('status').annotate(count=Count('status'))
+
+    attendance_summary = {
+        'present': 0,
+        'absent': 0,
+        'paid_leave': 0,
+        'unpaid_leave': 0,
+    }
+    for item in monthly_attendance:
+        attendance_summary[item['status']] = item['count']
+
+    # Monthly expenses
+    monthly_expenses = Expense.objects.filter(
+        date__gte=month_start
+    ).values('category').annotate(total=Sum('amount'))
+
+    monthly_expense_totals = {
+        'material': 0,
+        'food': 0,
+        'fuel': 0,
+        'equipment': 0,
+        'other': 0,
+    }
+    for item in monthly_expenses:
+        monthly_expense_totals[item['category']] = float(item['total'])
+
+    # Weekly expenses
+    weekly_expenses = Expense.objects.filter(
+        date__gte=week_start
+    ).values('date').annotate(total=Sum('amount')).order_by('date')
+
+    weekly_expense_data = [
+        {'date': item['date'].strftime('%Y-%m-%d'), 'amount': float(item['total'])}
+        for item in weekly_expenses
+    ]
+
+    # Monthly payroll total
+    monthly_payroll = Payroll.objects.filter(
+        month=month_start
+    ).aggregate(total=Sum('net_salary'))['total'] or 0
+
+    # Profit/Loss (Expense vs Payroll)
+    total_expense = monthly_expenses.aggregate(total=Sum('amount'))['total'] or 0
+
+    context = {
+        'total_workers': total_workers,
+        'total_sites': total_sites,
+        'attendance_summary': attendance_summary,
+        'monthly_expense_totals': monthly_expense_totals,
+        'weekly_expense_data': weekly_expense_data,
+        'monthly_payroll': float(monthly_payroll),
+        'total_expense': float(total_expense),
+        'profit_loss': float(total_expense) - float(monthly_payroll),
+        'month_name': month_start.strftime('%B %Y'),
+    }
+
+    return render(request, 'workers/dashboard.html', context)

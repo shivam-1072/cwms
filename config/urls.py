@@ -26,3 +26,21 @@ urlpatterns = [
 
 if settings.DEBUG:
     urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+
+
+# Make dashboard the home page
+
+from django.contrib import admin
+from django.urls import path, include
+from django.conf import settings
+from django.conf.urls.static import static
+from workers.views import dashboard  # Import dashboard view
+
+urlpatterns = [
+    path('', dashboard, name='home'),  # Dashboard as homepage
+    path('admin/', admin.site.urls),
+    path('workers/', include('workers.urls')),
+]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
