@@ -128,3 +128,12 @@ STATIC_URL = 'static/'
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+
+# Security Settings
+LOGIN_URL = '/workers/login/'
+LOGIN_REDIRECT_URL = '/workers/dashboard/'
+LOGOUT_REDIRECT_URL = '/workers/login/'
+
+# Add decorators to protect views
+# We'll add @login_required to all views
