@@ -1,7 +1,5 @@
-version: '3.8'
-
 services:
-  postgres:
+  db:
     image: postgres:17
     container_name: construction-postgres
     restart: unless-stopped
@@ -14,10 +12,28 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U construction_user -d construction_workforce_db"]
+      test: ["CMD-SHELL", "pg_isready -U construction_admin -d construction_workforce_db"]
       interval: 10s
       timeout: 5s
       retries: 5
+
+  web:
+    build: .
+    container_name: construction-web
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      - DB_HOST=db
+      - DB_NAME=construction_workforce_db
+      - DB_USER=construction_admin
+      - DB_PASSWORD=Cwmsadmin
+      - DB_PORT=5432
+    volumes:
+      - ./media:/app/media
 
 volumes:
   postgres_data:

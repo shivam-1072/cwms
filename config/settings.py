@@ -75,16 +75,18 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 
 # Database
-# https://docs.djangoproject.com/en/6.0/ref/settings/#databases
+# https://docs.djangoproject.com/en/6.0/ref/settings/#database
+
+import os
 
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'construction_workforce_db',
-        'USER': 'construction_admin',
-        'PASSWORD': 'Cwmsadmin',
-        'HOST': 'localhost',
-        'PORT': '5432',
+        'NAME': os.environ.get('DB_NAME', 'construction_workforce_db'),
+        'USER': os.environ.get('DB_USER', 'construction_admin'),
+        'PASSWORD': os.environ.get('DB_PASSWORD', 'Cwmsadmin'),
+        'HOST': os.environ.get('DB_HOST', 'localhost'),
+        'PORT': os.environ.get('DB_PORT', '5432'),
     }
 }
 
@@ -125,6 +127,9 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# ===== ADDED THESE TWO LINES =====
+STATIC_ROOT = '/app/static'  # Where collectstatic will put files
+STATICFILES_DIRS = []        # No additional directories
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
