@@ -3,19 +3,55 @@
 {% block title %}Workers List{% endblock %}
 
 {% block content %}
+<style>
+    .page-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 25px;
+        flex-wrap: wrap;
+        gap: 15px;
+    }
+    .page-header h1 { font-size: 28px; font-weight: 700; color: #1a1a2e; }
+    
+    .btn {
+        padding: 10px 24px;
+        border-radius: 10px;
+        text-decoration: none;
+        color: white;
+        font-weight: 600;
+        transition: all 0.3s;
+        display: inline-block;
+        border: none;
+        cursor: pointer;
+        font-size: 14px;
+    }
+    .btn-primary { background: linear-gradient(135deg, #e94560, #c23152); }
+    .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 15px rgba(233, 69, 96, 0.4); }
+    .btn-edit { background: #17a2b8; }
+    .btn-edit:hover { background: #138496; }
+    .btn-delete { background: #dc3545; }
+    .btn-delete:hover { background: #c82333; }
+    
+    .table-wrapper {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+        overflow-x: auto;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 14px 16px; text-align: left; border-bottom: 1px solid #f0f2f5; }
+    th { background: #f8f9fa; font-weight: 600; color: #1a1a2e; }
+    tr:hover { background: #f8f9fa; }
+</style>
+
+<div class="page-header">
     <h1>👷 Workers</h1>
-    <a href="{% url 'worker_create' %}" class="btn btn-add">+ Add Worker</a>
+    <a href="{% url 'worker_create' %}" class="btn btn-primary">➕ Add Worker</a>
+</div>
 
-    {% if messages %}
-        <div class="messages">
-            {% for message in messages %}
-                <div class="{% if message.tags %}{{ message.tags }}{% endif %}">
-                    {{ message }}
-                </div>
-            {% endfor %}
-        </div>
-    {% endif %}
-
+<div class="table-wrapper">
     <table>
         <thead>
             <tr>
@@ -30,97 +66,20 @@
         <tbody>
             {% for worker in workers %}
             <tr>
-                <td>{{ worker.name }}</td>
+                <td><strong>{{ worker.name }}</strong></td>
                 <td>{{ worker.phone }}</td>
                 <td>{{ worker.joining_date }}</td>
                 <td>₹{{ worker.daily_wage }}</td>
                 <td>{{ worker.site.name|default:"Not Assigned" }}</td>
                 <td>
-                    <a href="{% url 'worker_update' worker.id %}" class="btn btn-edit">✏️ Edit</a>
-                    <a href="{% url 'worker_delete' worker.id %}" class="btn btn-delete">🗑️ Delete</a>
+                    <a href="{% url 'worker_update' worker.id %}" class="btn btn-edit" style="padding:6px 14px;font-size:13px;">✏️ Edit</a>
+                    <a href="{% url 'worker_delete' worker.id %}" class="btn btn-delete" style="padding:6px 14px;font-size:13px;">🗑️</a>
                 </td>
             </tr>
             {% empty %}
-            <tr>
-                <td colspan="6" style="text-align: center;">No workers found. <a href="{% url 'worker_create' %}">Add one</a></td>
-            </tr>
+            <tr><td colspan="6" style="text-align:center;padding:40px;color:#888;">No workers found. <a href="{% url 'worker_create' %}">Add one</a></td></tr>
             {% endfor %}
         </tbody>
     </table>
-
-    <style>
-        /* Page-specific styles */
-        .btn {
-            padding: 8px 15px;
-            margin: 2px;
-            text-decoration: none;
-            color: white;
-            border-radius: 4px;
-            display: inline-block;
-            font-size: 14px;
-        }
-        .btn-add {
-            background: #4CAF50;
-            margin-bottom: 15px;
-        }
-        .btn-add:hover {
-            background: #45a049;
-        }
-        .btn-edit {
-            background: #2196F3;
-        }
-        .btn-edit:hover {
-            background: #0b7dda;
-        }
-        .btn-delete {
-            background: #f44336;
-        }
-        .btn-delete:hover {
-            background: #d32f2f;
-        }
-        
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin-top: 15px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 10px;
-            text-align: left;
-        }
-        th {
-            background-color: #4CAF50;
-            color: white;
-        }
-        tr:nth-child(even) {
-            background-color: #f9f9f9;
-        }
-        tr:hover {
-            background-color: #f5f5f5;
-        }
-        
-        .messages {
-            margin: 15px 0;
-        }
-        .messages div {
-            padding: 10px;
-            border-radius: 4px;
-        }
-        .success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-        .error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-        .info {
-            background: #d1ecf1;
-            color: #0c5460;
-            border: 1px solid #bee5eb;
-        }
-    </style>
+</div>
 {% endblock %}

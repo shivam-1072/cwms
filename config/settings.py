@@ -137,3 +137,6 @@ LOGOUT_REDIRECT_URL = '/workers/login/'
 
 # Add decorators to protect views
 # We'll add @login_required to all views
+
+# ===== Admin Customization =====
+ADMIN_SITE_HEADER = "Administrator"

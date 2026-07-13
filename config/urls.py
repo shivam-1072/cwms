@@ -36,6 +36,11 @@ from django.conf import settings
 from django.conf.urls.static import static
 from workers.views import dashboard  # Import dashboard view
 
+# ===== CHANGE: Customize Admin =====
+admin.site.site_header = "Administrator"
+admin.site.site_title = "Construction MS Admin"
+admin.site.index_title = "🏗️ Construction Management System"
+
 urlpatterns = [
     path('', dashboard, name='home'),  # Dashboard as homepage
     path('admin/', admin.site.urls),

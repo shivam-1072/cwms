@@ -2,89 +2,132 @@
 <html>
 <head>
     <title>{% block title %}Construction Management{% endblock %}</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { font-family: Arial; background: #f5f5f5; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f0f2f5;
+            color: #1a1a2e;
+            min-height: 100vh;
+        }
         
-        /* Navigation */
+        /* ===== NAVIGATION ===== */
         .navbar {
-            background: #2c3e50;
-            padding: 15px 30px;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+            padding: 16px 40px;
             display: flex;
             justify-content: space-between;
             align-items: center;
             color: white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
             flex-wrap: wrap;
             gap: 10px;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
         }
         .navbar-brand {
             font-size: 24px;
-            font-weight: bold;
+            font-weight: 700;
             text-decoration: none;
             color: white;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         .navbar-brand:hover {
-            color: #ddd;
+            color: #e94560;
+            transition: 0.3s;
         }
         .navbar-menu {
             display: flex;
-            gap: 10px;
+            gap: 8px;
             flex-wrap: wrap;
         }
         .navbar-link {
-            color: white;
+            color: rgba(255,255,255,0.7);
             text-decoration: none;
-            padding: 8px 15px;
-            border-radius: 4px;
-            transition: background 0.3s;
+            padding: 10px 18px;
+            border-radius: 8px;
+            transition: all 0.3s ease;
             font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         .navbar-link:hover {
-            background: #34495e;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            transform: translateY(-2px);
         }
         .navbar-link.active {
-            background: #3498db;
+            background: rgba(233, 69, 96, 0.3);
+            color: #e94560;
+            box-shadow: 0 0 20px rgba(233, 69, 96, 0.1);
         }
         .navbar-link.logout {
-            background: #e74c3c;
+            background: rgba(233, 69, 96, 0.2);
+            color: #e94560;
+            border: 1px solid rgba(233, 69, 96, 0.3);
         }
         .navbar-link.logout:hover {
-            background: #c0392b;
+            background: #e94560;
+            color: white;
+            border-color: #e94560;
         }
         
+        /* ===== CONTAINER ===== */
         .container {
-            max-width: 1200px;
-            margin: 20px auto;
-            padding: 0 20px;
+            max-width: 1400px;
+            margin: 30px auto;
+            padding: 0 30px;
         }
         
-        /* Messages */
+        /* ===== MESSAGES ===== */
         .messages {
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 4px;
+            padding: 12px 20px;
+            margin: 10px 0 20px 0;
+            border-radius: 10px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
-        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
-        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
-        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        .success {
+            background: linear-gradient(135deg, #d4edda, #b7e4c7);
+            color: #0a5e2a;
+            border-left: 5px solid #28a745;
+        }
+        .error {
+            background: linear-gradient(135deg, #f8d7da, #f5c6cb);
+            color: #721c24;
+            border-left: 5px solid #dc3545;
+        }
+        .info {
+            background: linear-gradient(135deg, #d1ecf1, #bee5eb);
+            color: #0c5460;
+            border-left: 5px solid #17a2b8;
+        }
         
+        /* ===== RESPONSIVE ===== */
         @media (max-width: 768px) {
             .navbar {
                 flex-direction: column;
                 align-items: stretch;
-                padding: 10px 15px;
+                padding: 12px 20px;
             }
             .navbar-brand {
-                text-align: center;
-                margin-bottom: 10px;
+                justify-content: center;
+                margin-bottom: 8px;
             }
             .navbar-menu {
                 justify-content: center;
             }
             .navbar-link {
-                padding: 6px 12px;
                 font-size: 13px;
+                padding: 8px 12px;
             }
         }
     </style>
@@ -92,13 +135,13 @@
 <body>
     <!-- Navigation -->
     <nav class="navbar">
-        <a href="{% url 'dashboard' %}" class="navbar-brand">🏗️ Construction MS</a>
+        <a href="{% url 'dashboard' %}" class="navbar-brand">
+            🏗️ <span>Construction MS</span>
+        </a>
         <div class="navbar-menu">
             <a href="{% url 'dashboard' %}" class="navbar-link {% if request.path == '/' or request.path == '/workers/dashboard/' %}active{% endif %}">
                 📊 Dashboard
             </a>
-            
-            <!-- Show Workers & Attendance to staff/admin only -->
             {% if user.is_staff or user.is_superuser %}
             <a href="{% url 'worker_list' %}" class="navbar-link {% if request.path == '/workers/' or request.path == '/workers' %}active{% endif %}">
                 👷 Workers
@@ -110,8 +153,6 @@
                 📊 Summary
             </a>
             {% endif %}
-            
-            <!-- Show Payroll & Expenses to admin only -->
             {% if user.is_superuser %}
             <a href="{% url 'payroll_list' %}" class="navbar-link {% if '/payroll' in request.path %}active{% endif %}">
                 💰 Payroll
@@ -123,7 +164,6 @@
                 📋 Work Log
             </a>
             {% endif %}
-            
             <a href="{% url 'logout' %}" class="navbar-link logout">🚪 Logout</a>
         </div>
     </nav>
@@ -131,13 +171,11 @@
     <!-- Main Content -->
     <div class="container">
         {% if messages %}
-            <div class="messages">
-                {% for message in messages %}
-                    <div class="{% if message.tags %}{{ message.tags }}{% endif %}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            </div>
+            {% for message in messages %}
+                <div class="messages {{ message.tags }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
         {% endif %}
         
         {% block content %}

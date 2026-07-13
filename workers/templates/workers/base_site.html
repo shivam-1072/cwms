@@ -1,0 +1,36 @@
+{% extends "admin/base_site.html" %}
+
+{% block extrahead %}
+<style>
+    #header {
+        background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%) !important;
+        padding: 15px 40px !important;
+    }
+    #header a {
+        font-size: 22px !important;
+        font-weight: 700 !important;
+    }
+    #branding h1 {
+        font-weight: 700 !important;
+    }
+    .module h2, .module caption {
+        background: linear-gradient(135deg, #16213e, #0f3460) !important;
+    }
+    .button, input[type="submit"], input[type="button"], .submit-row input {
+        background: #e94560 !important;
+        border-radius: 8px !important;
+        border: none !important;
+        font-weight: 600 !important;
+    }
+    .button:hover, input[type="submit"]:hover {
+        background: #c23152 !important;
+    }
+    .object-tools a {
+        background: #28a745 !important;
+        border-radius: 8px !important;
+    }
+    .object-tools a:hover {
+        background: #1e7e34 !important;
+    }
+</style>
+{% endblock %}
