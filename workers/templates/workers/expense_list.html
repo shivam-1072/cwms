@@ -1,22 +1,10 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Expenses</title>
-    <style>
-        body { font-family: Arial; margin: 20px; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #4CAF50; color: white; }
-        .btn { padding: 5px 10px; margin: 2px; text-decoration: none; color: white; }
-        .btn-add { background: #4CAF50; }
-        .btn-delete { background: #f44336; }
-        .total-box { background: #f8f9fa; padding: 15px; margin: 10px 0; border: 1px solid #ddd; }
-        .category-box { display: inline-block; padding: 5px 10px; margin: 5px; background: #e9ecef; border-radius: 3px; }
-    </style>
-</head>
-<body>
-    <h1>Expenses</h1>
-    <a href="{% url 'expense_create' %}" class="btn btn-add">Add Expense</a>
+{% extends 'workers/base.html' %}
+
+{% block title %}Expenses{% endblock %}
+
+{% block content %}
+    <h1>💳 Expenses</h1>
+    <a href="{% url 'expense_create' %}" class="btn btn-add">➕ Add Expense</a>
     
     <div class="total-box">
         <h3>Total Expense: ₹{{ total_expense|floatformat:2 }}</h3>
@@ -49,13 +37,13 @@
                 <td>{{ expense.date }}</td>
                 <td>
                     {% if expense.receipt %}
-                        <a href="{{ expense.receipt.url }}" target="_blank">View</a>
+                        <a href="{{ expense.receipt.url }}" target="_blank">📎 View</a>
                     {% else %}
                         No receipt
                     {% endif %}
                 </td>
                 <td>
-                    <a href="{% url 'expense_delete' expense.id %}" class="btn btn-delete">Delete</a>
+                    <a href="{% url 'expense_delete' expense.id %}" class="btn btn-delete">🗑️ Delete</a>
                 </td>
             </tr>
             {% empty %}
@@ -65,5 +53,57 @@
             {% endfor %}
         </tbody>
     </table>
-</body>
-</html>
+
+    <style>
+        .btn {
+            padding: 8px 15px;
+            margin: 2px;
+            text-decoration: none;
+            color: white;
+            border-radius: 4px;
+            display: inline-block;
+            font-size: 14px;
+        }
+        .btn-add {
+            background: #4CAF50;
+            margin-bottom: 15px;
+        }
+        .btn-add:hover {
+            background: #45a049;
+        }
+        .btn-delete {
+            background: #f44336;
+        }
+        .btn-delete:hover {
+            background: #d32f2f;
+        }
+        .total-box {
+            background: #f8f9fa;
+            padding: 15px;
+            margin: 15px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .category-box {
+            display: inline-block;
+            padding: 5px 10px;
+            margin: 5px;
+            background: #e9ecef;
+            border-radius: 3px;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+    </style>
+{% endblock %}

@@ -1,22 +1,11 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Payroll</title>
-    <style>
-        body { font-family: Arial; margin: 20px; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #4CAF50; color: white; }
-        .btn { padding: 5px 10px; margin: 2px; text-decoration: none; color: white; }
-        .btn-add { background: #4CAF50; }
-        .btn-export { background: #17a2b8; }
-        .total { background: #f8f9fa; font-weight: bold; }
-    </style>
-</head>
-<body>
-    <h1>Payroll</h1>
-    <a href="{% url 'generate_payroll' %}" class="btn btn-add">Generate Payroll</a>
-    <a href="{% url 'export_payroll_csv' %}" class="btn btn-export">Export CSV</a>
+{% extends 'workers/base.html' %}
+
+{% block title %}Payroll{% endblock %}
+
+{% block content %}
+    <h1>💰 Payroll</h1>
+    <a href="{% url 'generate_payroll' %}" class="btn btn-add">📊 Generate Payroll</a>
+    <a href="{% url 'export_payroll_csv' %}" class="btn btn-export">📥 Export CSV</a>
     
     <table>
         <thead>
@@ -48,5 +37,47 @@
             {% endfor %}
         </tbody>
     </table>
-</body>
-</html>
+
+    <style>
+        .btn {
+            padding: 8px 15px;
+            margin: 2px;
+            text-decoration: none;
+            color: white;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .btn-add {
+            background: #4CAF50;
+            margin-bottom: 15px;
+        }
+        .btn-add:hover {
+            background: #45a049;
+        }
+        .btn-export {
+            background: #17a2b8;
+            margin-bottom: 15px;
+        }
+        .btn-export:hover {
+            background: #138496;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin-top: 15px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: left;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .total {
+            background: #f8f9fa;
+            font-weight: bold;
+        }
+    </style>
+{% endblock %}

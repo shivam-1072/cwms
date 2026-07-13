@@ -1,26 +1,54 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Delete Worker</title>
-    <style>
-        body { font-family: Arial; margin: 20px; }
-        .warning { background: #f44336; color: white; padding: 10px; }
-        .btn { padding: 8px 15px; margin: 5px; cursor: pointer; }
-        .btn-danger { background: #f44336; color: white; border: none; }
-        .btn-cancel { background: #666; color: white; text-decoration: none; padding: 8px 15px; }
-    </style>
-</head>
-<body>
-    <h1>Delete Worker</h1>
+{% extends 'workers/base.html' %}
+
+{% block title %}Delete Worker{% endblock %}
+
+{% block content %}
+    <h1>🗑️ Delete Worker</h1>
+    
     <div class="warning">
-        <p>Are you sure you want to delete "{{ worker.name }}"?</p>
+        <p>Are you sure you want to delete <strong>"{{ worker.name }}"</strong>?</p>
         <p>This action cannot be undone.</p>
     </div>
     
     <form method="post">
         {% csrf_token %}
-        <button type="submit" class="btn btn-danger">Confirm Delete</button>
-        <a href="{% url 'worker_list' %}" class="btn-cancel">Cancel</a>
+        <button type="submit" class="btn btn-danger">✅ Confirm Delete</button>
+        <a href="{% url 'worker_list' %}" class="btn-cancel">❌ Cancel</a>
     </form>
-</body>
-</html>
+
+    <style>
+        .warning {
+            background: #f44336;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn-danger {
+            background: #f44336;
+            color: white;
+        }
+        .btn-danger:hover {
+            background: #d32f2f;
+        }
+        .btn-cancel {
+            background: #666;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .btn-cancel:hover {
+            background: #555;
+        }
+    </style>
+{% endblock %}

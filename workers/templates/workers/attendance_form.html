@@ -1,19 +1,9 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Mark Attendance</title>
-    <style>
-        body { font-family: Arial; margin: 20px; }
-        .form-group { margin: 10px 0; }
-        label { display: inline-block; width: 120px; font-weight: bold; }
-        input, select { padding: 5px; width: 200px; }
-        .btn { padding: 8px 15px; margin: 5px; cursor: pointer; }
-        .btn-save { background: #4CAF50; color: white; border: none; }
-        .btn-cancel { background: #666; color: white; text-decoration: none; padding: 8px 15px; }
-    </style>
-</head>
-<body>
-    <h1>Mark Attendance</h1>
+{% extends 'workers/base.html' %}
+
+{% block title %}Mark Attendance{% endblock %}
+
+{% block content %}
+    <h1>📝 Mark Attendance</h1>
     
     <form method="post">
         {% csrf_token %}
@@ -33,16 +23,58 @@
         <div class="form-group">
             <label>Status:</label>
             <select name="status">
-                <option value="present">Present</option>
-                <option value="absent">Absent</option>
-                <option value="paid_leave">Paid Leave</option>
-                <option value="unpaid_leave">Unpaid Leave</option>
+                <option value="present">✅ Present</option>
+                <option value="absent">❌ Absent</option>
+                <option value="paid_leave">💰 Paid Leave</option>
+                <option value="unpaid_leave">💸 Unpaid Leave</option>
             </select>
         </div>
         <div>
-            <button type="submit" class="btn btn-save">Save</button>
-            <a href="{% url 'attendance_list' %}" class="btn-cancel">Cancel</a>
+            <button type="submit" class="btn btn-save">💾 Save</button>
+            <a href="{% url 'attendance_list' %}" class="btn-cancel">❌ Cancel</a>
         </div>
     </form>
-</body>
-</html>
+
+    <style>
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        input, select {
+            padding: 8px;
+            width: 250px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn-save {
+            background: #4CAF50;
+            color: white;
+        }
+        .btn-save:hover {
+            background: #45a049;
+        }
+        .btn-cancel {
+            background: #666;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .btn-cancel:hover {
+            background: #555;
+        }
+    </style>
+{% endblock %}

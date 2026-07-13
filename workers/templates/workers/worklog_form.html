@@ -1,42 +1,38 @@
 {% extends 'workers/base.html' %}
 
-{% block title %}{% if worker %}Edit{% else %}Add{% endif %} Worker{% endblock %}
+{% block title %}{% if worklog %}Edit{% else %}Add{% endif %} Work Log{% endblock %}
 
 {% block content %}
-    <h1>{% if worker %}✏️ Edit{% else %}➕ Add{% endif %} Worker</h1>
+    <h1>{% if worklog %}✏️ Edit{% else %}➕ Add{% endif %} Work Log</h1>
     
     <form method="post">
         {% csrf_token %}
         <div class="form-group">
-            <label>Name:</label>
-            <input type="text" name="name" value="{{ worker.name|default:'' }}" required>
-        </div>
-        <div class="form-group">
-            <label>Phone:</label>
-            <input type="text" name="phone" value="{{ worker.phone|default:'' }}" required>
-        </div>
-        <div class="form-group">
-            <label>Joining Date:</label>
-            <input type="date" name="joining_date" value="{{ worker.joining_date|date:'Y-m-d'|default:'' }}" required>
-        </div>
-        <div class="form-group">
-            <label>Daily Wage:</label>
-            <input type="number" step="0.01" name="daily_wage" value="{{ worker.daily_wage|default:'' }}" required>
-        </div>
-        <div class="form-group">
             <label>Site:</label>
-            <select name="site">
-                <option value="">None</option>
+            <select name="site" required>
+                <option value="">Select Site</option>
                 {% for site in sites %}
-                    <option value="{{ site.id }}" {% if worker and worker.site.id == site.id %}selected{% endif %}>
+                    <option value="{{ site.id }}" {% if worklog and worklog.site.id == site.id %}selected{% endif %}>
                         {{ site.name }}
                     </option>
                 {% endfor %}
             </select>
         </div>
+        <div class="form-group">
+            <label>Work Done Today:</label>
+            <textarea name="work_done" rows="4" cols="50" required>{{ worklog.work_done|default:'' }}</textarea>
+        </div>
+        <div class="form-group">
+            <label>Pending Work:</label>
+            <textarea name="pending_work" rows="3" cols="50">{{ worklog.pending_work|default:'' }}</textarea>
+        </div>
+        <div class="form-group">
+            <label>Workers on Site:</label>
+            <input type="number" name="worker_count" value="{{ worklog.worker_count|default:'0' }}" min="0">
+        </div>
         <div>
             <button type="submit" class="btn btn-save">💾 Save</button>
-            <a href="{% url 'worker_list' %}" class="btn-cancel">❌ Cancel</a>
+            <a href="{% url 'worklog_list' %}" class="btn-cancel">❌ Cancel</a>
         </div>
     </form>
 
@@ -46,12 +42,13 @@
         }
         label {
             display: inline-block;
-            width: 120px;
+            width: 150px;
             font-weight: bold;
+            vertical-align: top;
         }
-        input, select {
+        input, select, textarea {
             padding: 8px;
-            width: 250px;
+            width: 350px;
             border: 1px solid #ddd;
             border-radius: 4px;
         }

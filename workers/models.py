@@ -94,3 +94,20 @@ class UserProfile(models.Model):
 
     def __str__(self):
         return f"{self.user.username} - {self.role}"
+
+
+# Added WorkLog model
+class WorkLog(models.Model):
+    site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='work_logs')
+    date = models.DateField(auto_now_add=True)
+    work_done = models.TextField()
+    pending_work = models.TextField(blank=True)
+    worker_count = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f"{self.site.name} - {self.date}"
+
+    class Meta:
+        ordering = ['-date']

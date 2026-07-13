@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{% block title %}Construction Management{% endblock %}</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial; background: #f5f5f5; }
+        
+        /* Navigation */
+        .navbar {
+            background: #2c3e50;
+            padding: 15px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            color: white;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .navbar-brand {
+            font-size: 24px;
+            font-weight: bold;
+            text-decoration: none;
+            color: white;
+        }
+        .navbar-brand:hover {
+            color: #ddd;
+        }
+        .navbar-menu {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .navbar-link {
+            color: white;
+            text-decoration: none;
+            padding: 8px 15px;
+            border-radius: 4px;
+            transition: background 0.3s;
+            font-size: 14px;
+        }
+        .navbar-link:hover {
+            background: #34495e;
+        }
+        .navbar-link.active {
+            background: #3498db;
+        }
+        .navbar-link.logout {
+            background: #e74c3c;
+        }
+        .navbar-link.logout:hover {
+            background: #c0392b;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 20px auto;
+            padding: 0 20px;
+        }
+        
+        /* Messages */
+        .messages {
+            padding: 10px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .success { background: #d4edda; color: #155724; border: 1px solid #c3e6cb; }
+        .error { background: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+        .info { background: #d1ecf1; color: #0c5460; border: 1px solid #bee5eb; }
+        
+        @media (max-width: 768px) {
+            .navbar {
+                flex-direction: column;
+                align-items: stretch;
+                padding: 10px 15px;
+            }
+            .navbar-brand {
+                text-align: center;
+                margin-bottom: 10px;
+            }
+            .navbar-menu {
+                justify-content: center;
+            }
+            .navbar-link {
+                padding: 6px 12px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <a href="{% url 'dashboard' %}" class="navbar-brand">🏗️ Construction MS</a>
+        <div class="navbar-menu">
+            <a href="{% url 'dashboard' %}" class="navbar-link {% if request.path == '/' or request.path == '/workers/dashboard/' %}active{% endif %}">
+                📊 Dashboard
+            </a>
+            
+            <!-- Show Workers & Attendance to staff/admin only -->
+            {% if user.is_staff or user.is_superuser %}
+            <a href="{% url 'worker_list' %}" class="navbar-link {% if request.path == '/workers/' or request.path == '/workers' %}active{% endif %}">
+                👷 Workers
+            </a>
+            <a href="{% url 'attendance_list' %}" class="navbar-link {% if '/attendance' in request.path and '/summary' not in request.path %}active{% endif %}">
+                📅 Attendance
+            </a>
+            <a href="{% url 'attendance_summary' %}" class="navbar-link {% if '/summary' in request.path %}active{% endif %}">
+                📊 Summary
+            </a>
+            {% endif %}
+            
+            <!-- Show Payroll & Expenses to admin only -->
+            {% if user.is_superuser %}
+            <a href="{% url 'payroll_list' %}" class="navbar-link {% if '/payroll' in request.path %}active{% endif %}">
+                💰 Payroll
+            </a>
+            <a href="{% url 'expense_list' %}" class="navbar-link {% if '/expenses' in request.path %}active{% endif %}">
+                💳 Expenses
+            </a>
+            <a href="{% url 'worklog_list' %}" class="navbar-link {% if '/worklog' in request.path %}active{% endif %}">
+                📋 Work Log
+            </a>
+            {% endif %}
+            
+            <a href="{% url 'logout' %}" class="navbar-link logout">🚪 Logout</a>
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <div class="container">
+        {% if messages %}
+            <div class="messages">
+                {% for message in messages %}
+                    <div class="{% if message.tags %}{{ message.tags }}{% endif %}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        {% block content %}
+        {% endblock %}
+    </div>
+</body>
+</html>

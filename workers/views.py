@@ -1,9 +1,9 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
-from .models import Worker, Attendance, Payroll, Expense, UserProfile
+from .models import Worker, Attendance, Payroll, Expense, UserProfile, WorkLog
 from sites.models import Site
 from datetime import date, datetime, timedelta
 from django.db import models
@@ -13,13 +13,22 @@ from django.http import HttpResponse
 from django.utils import timezone
 import csv
 
+# ============ HELPER FUNCTIONS ============
+def is_admin(user):
+    return user.is_superuser
+
+def is_manager(user):
+    return user.is_staff or user.is_superuser
+
 # ============ WORKER VIEWS ============
 @login_required
+@user_passes_test(is_manager)
 def worker_list(request):
     workers = Worker.objects.all()
     return render(request, 'workers/worker_list.html', {'workers': workers})
 
 @login_required
+@user_passes_test(is_admin)
 def worker_create(request):
     sites = Site.objects.all()
     if request.method == 'POST':
@@ -42,6 +51,7 @@ def worker_create(request):
     return render(request, 'workers/worker_form.html', {'sites': sites})
 
 @login_required
+@user_passes_test(is_admin)
 def worker_update(request, pk):
     worker = get_object_or_404(Worker, pk=pk)
     sites = Site.objects.all()
@@ -59,6 +69,7 @@ def worker_update(request, pk):
     return render(request, 'workers/worker_form.html', {'worker': worker, 'sites': sites})
 
 @login_required
+@user_passes_test(is_admin)
 def worker_delete(request, pk):
     worker = get_object_or_404(Worker, pk=pk)
     if request.method == 'POST':
@@ -69,11 +80,24 @@ def worker_delete(request, pk):
 
 # ============ ATTENDANCE VIEWS ============
 @login_required
+@user_passes_test(is_manager)
 def attendance_list(request):
-    attendances = Attendance.objects.select_related('worker').all()
-    return render(request, 'workers/attendance_list.html', {'attendances': attendances})
+    attendances = Attendance.objects.select_related('worker__site').all()
+    sites = Site.objects.all()
+
+    # ===== NEW: Filter by site =====
+    site_filter = request.GET.get('site')
+    if site_filter:
+        attendances = attendances.filter(worker__site_id=site_filter)
+
+    return render(request, 'workers/attendance_list.html', {
+        'attendances': attendances,
+        'sites': sites,
+        'selected_site': site_filter,
+    })
 
 @login_required
+@user_passes_test(is_manager)
 def attendance_create(request):
     workers = Worker.objects.all()
 
@@ -103,11 +127,13 @@ def attendance_create(request):
 
 # ============ PAYROLL VIEWS ============
 @login_required
+@user_passes_test(is_admin)
 def payroll_list(request):
     payrolls = Payroll.objects.select_related('worker').all()
     return render(request, 'workers/payroll_list.html', {'payrolls': payrolls})
 
 @login_required
+@user_passes_test(is_admin)
 def generate_payroll(request):
     if request.method == 'POST':
         month = request.POST.get('month')
@@ -157,6 +183,7 @@ def generate_payroll(request):
     return render(request, 'workers/generate_payroll.html')
 
 @login_required
+@user_passes_test(is_admin)
 def export_payroll_csv(request):
     payrolls = Payroll.objects.select_related('worker').all()
 
@@ -181,6 +208,7 @@ def export_payroll_csv(request):
 
 # ============ EXPENSE VIEWS ============
 @login_required
+@user_passes_test(is_manager)
 def expense_list(request):
     expenses = Expense.objects.select_related('site').all()
     total_expense = expenses.aggregate(total=models.Sum('amount'))['total'] or 0
@@ -197,6 +225,7 @@ def expense_list(request):
     })
 
 @login_required
+@user_passes_test(is_admin)
 def expense_create(request):
     sites = Site.objects.all()
 
@@ -221,6 +250,7 @@ def expense_create(request):
     return render(request, 'workers/expense_form.html', {'sites': sites})
 
 @login_required
+@user_passes_test(is_admin)
 def expense_delete(request, pk):
     expense = get_object_or_404(Expense, pk=pk)
     if request.method == 'POST':
@@ -235,27 +265,46 @@ def dashboard(request):
     today = timezone.now().date()
     month_start = today.replace(day=1)
     week_start = today - timedelta(days=today.weekday())
-
-    total_workers = Worker.objects.count()
-    total_sites = Site.objects.count()
-
-    monthly_attendance = Attendance.objects.filter(
-        date__gte=month_start
-    ).values('status').annotate(count=Count('status'))
-
+    
+    # ===== CHANGED: Attendance for TODAY only =====
+    today_attendance = Attendance.objects.filter(date=today).values('status').annotate(count=Count('status'))
+    
     attendance_summary = {
         'present': 0,
         'absent': 0,
         'paid_leave': 0,
         'unpaid_leave': 0,
     }
-    for item in monthly_attendance:
+    for item in today_attendance:
         attendance_summary[item['status']] = item['count']
-
-    monthly_expenses = Expense.objects.filter(
-        date__gte=month_start
-    ).values('category').annotate(total=Sum('amount'))
-
+    
+    # ===== NEW: Date Filter for Expenses =====
+    filter_type = request.GET.get('filter', 'today')
+    
+    if filter_type == 'today':
+        expense_start = today
+        expense_end = today
+    elif filter_type == 'weekly':
+        expense_start = today - timedelta(days=7)
+        expense_end = today
+    elif filter_type == 'quarterly':
+        expense_start = today - timedelta(days=90)
+        expense_end = today
+    elif filter_type == 'yearly':
+        expense_start = today - timedelta(days=365)
+        expense_end = today
+    else:  # monthly (default)
+        expense_start = month_start
+        expense_end = today
+    
+    # Filter expenses by date range
+    filtered_expenses = Expense.objects.filter(
+        date__gte=expense_start,
+        date__lte=expense_end
+    )
+    
+    monthly_expenses = filtered_expenses.values('category').annotate(total=Sum('amount'))
+    
     monthly_expense_totals = {
         'material': 0,
         'food': 0,
@@ -266,6 +315,11 @@ def dashboard(request):
     for item in monthly_expenses:
         monthly_expense_totals[item['category']] = float(item['total'])
 
+    # Worker statistics
+    total_workers = Worker.objects.count()
+    total_sites = Site.objects.count()
+
+    # Weekly expenses (for chart)
     weekly_expenses = Expense.objects.filter(
         date__gte=week_start
     ).values('date').annotate(total=Sum('amount')).order_by('date')
@@ -275,11 +329,13 @@ def dashboard(request):
         for item in weekly_expenses
     ]
 
+    # Monthly payroll total
     monthly_payroll = Payroll.objects.filter(
         month=month_start
     ).aggregate(total=Sum('net_salary'))['total'] or 0
 
-    total_expense = monthly_expenses.aggregate(total=Sum('amount'))['total'] or 0
+    # Total expense for profit/loss
+    total_expense = filtered_expenses.aggregate(total=Sum('amount'))['total'] or 0
 
     context = {
         'total_workers': total_workers,
@@ -291,11 +347,14 @@ def dashboard(request):
         'total_expense': float(total_expense),
         'profit_loss': float(total_expense) - float(monthly_payroll),
         'month_name': month_start.strftime('%B %Y'),
+        'filter_type': filter_type,
+        'expense_start': expense_start.strftime('%d-%b-%Y'),
+        'expense_end': expense_end.strftime('%d-%b-%Y'),
     }
 
     return render(request, 'workers/dashboard.html', context)
 
-# ============ AUTHENTICATION VIEWS (No login_required) ============
+# ============ AUTHENTICATION VIEWS ============
 def user_login(request):
     if request.method == 'POST':
         username = request.POST.get('username')
@@ -311,30 +370,185 @@ def user_login(request):
 
     return render(request, 'workers/login.html')
 
+# ===== CHANGED: Logout with confirmation =====
+@login_required
 def user_logout(request):
-    logout(request)
-    messages.info(request, 'You have been logged out.')
-    return redirect('login')
-
-def user_register(request):
     if request.method == 'POST':
-        username = request.POST.get('username')
-        email = request.POST.get('email')
-        password = request.POST.get('password')
-        confirm_password = request.POST.get('confirm_password')
-
-        if password != confirm_password:
-            messages.error(request, 'Passwords do not match.')
-            return render(request, 'workers/register.html')
-
-        if User.objects.filter(username=username).exists():
-            messages.error(request, 'Username already exists.')
-            return render(request, 'workers/register.html')
-
-        user = User.objects.create_user(username=username, email=email, password=password)
-        UserProfile.objects.create(user=user)
-
-        messages.success(request, 'Account created successfully! Please login.')
+        logout(request)
+        messages.info(request, 'You have been logged out successfully.')
         return redirect('login')
+    return render(request, 'workers/logout_confirm.html')
 
-    return render(request, 'workers/register.html')
+@login_required
+@user_passes_test(is_manager)
+def attendance_summary(request):
+    from django.utils import timezone
+    from datetime import timedelta
+    
+    # Get week start date from request or use current week
+    week_start_str = request.GET.get('week_start')
+    if week_start_str:
+        week_start = datetime.strptime(week_start_str, '%Y-%m-%d').date()
+    else:
+        today = timezone.now().date()
+        week_start = today - timedelta(days=today.weekday())
+    
+    week_end = week_start + timedelta(days=6)
+    
+    # Get all workers
+    workers = Worker.objects.all()
+    total_workers = workers.count()
+    
+    worker_summary = []
+    present_count = 0
+    absent_count = 0
+    leave_count = 0
+    
+    for worker in workers:
+        attendances = Attendance.objects.filter(
+            worker=worker,
+            date__gte=week_start,
+            date__lte=week_end
+        )
+        
+        present = attendances.filter(status='present').count()
+        absent = attendances.filter(status='absent').count()
+        leaves = attendances.filter(status='paid_leave').count() + attendances.filter(status='unpaid_leave').count()
+        total = attendances.count()
+        
+        present_count += present
+        absent_count += absent
+        leave_count += leaves
+        
+        worker_summary.append({
+            'name': worker.name,
+            'site': worker.site.name if worker.site else None,
+            'present': present,
+            'absent': absent,
+            'leaves': leaves,
+            'total': total,
+        })
+    
+    return render(request, 'workers/attendance_summary.html', {
+        'worker_summary': worker_summary,
+        'total_workers': total_workers,
+        'present_count': present_count,
+        'absent_count': absent_count,
+        'leave_count': leave_count,
+        'week_start': week_start,
+        'week_end': week_end,
+    })
+
+@login_required
+@user_passes_test(is_manager)
+def attendance_export_summary(request):
+    import csv
+    from datetime import datetime, timedelta
+    
+    week_start_str = request.GET.get('week_start')
+    if week_start_str:
+        week_start = datetime.strptime(week_start_str, '%Y-%m-%d').date()
+    else:
+        week_start = datetime.now().date() - timedelta(days=datetime.now().date().weekday())
+    
+    week_end = week_start + timedelta(days=6)
+    
+    response = HttpResponse(content_type='text/csv')
+    response['Content-Disposition'] = f'attachment; filename="attendance_summary_{week_start.strftime("%Y-%m-%d")}.csv"'
+    
+    writer = csv.writer(response)
+    writer.writerow(['Worker', 'Site', 'Present', 'Absent', 'Leaves', 'Total Days'])
+    
+    workers = Worker.objects.all()
+    for worker in workers:
+        attendances = Attendance.objects.filter(
+            worker=worker,
+            date__gte=week_start,
+            date__lte=week_end
+        )
+        
+        present = attendances.filter(status='present').count()
+        absent = attendances.filter(status='absent').count()
+        leaves = attendances.filter(status='paid_leave').count() + attendances.filter(status='unpaid_leave').count()
+        total = attendances.count()
+        
+        writer.writerow([
+            worker.name,
+            worker.site.name if worker.site else 'Not Assigned',
+            present,
+            absent,
+            leaves,
+            total,
+        ])
+    
+    return response
+
+# ============ WORKLOG VIEWS ============
+@login_required
+@user_passes_test(is_admin)
+def worklog_list(request):
+    work_logs = WorkLog.objects.select_related('site').all()
+    sites = Site.objects.all()
+    
+    site_filter = request.GET.get('site')
+    if site_filter:
+        work_logs = work_logs.filter(site_id=site_filter)
+    
+    return render(request, 'workers/worklog_list.html', {
+        'work_logs': work_logs,
+        'sites': sites,
+        'selected_site': site_filter,
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def worklog_create(request):
+    sites = Site.objects.all()
+    
+    if request.method == 'POST':
+        site_id = request.POST.get('site')
+        work_done = request.POST.get('work_done')
+        pending_work = request.POST.get('pending_work')
+        worker_count = request.POST.get('worker_count', 0)
+        
+        worklog = WorkLog.objects.create(
+            site_id=site_id,
+            work_done=work_done,
+            pending_work=pending_work,
+            worker_count=worker_count
+        )
+        messages.success(request, 'Work log added successfully!')
+        return redirect('worklog_list')
+    
+    return render(request, 'workers/worklog_form.html', {'sites': sites})
+
+@login_required
+@user_passes_test(is_admin)
+def worklog_update(request, pk):
+    worklog = get_object_or_404(WorkLog, pk=pk)
+    sites = Site.objects.all()
+    
+    if request.method == 'POST':
+        worklog.site_id = request.POST.get('site')
+        worklog.work_done = request.POST.get('work_done')
+        worklog.pending_work = request.POST.get('pending_work')
+        worklog.worker_count = request.POST.get('worker_count', 0)
+        worklog.save()
+        messages.success(request, 'Work log updated successfully!')
+        return redirect('worklog_list')
+    
+    return render(request, 'workers/worklog_form.html', {
+        'worklog': worklog,
+        'sites': sites,
+    })
+
+@login_required
+@user_passes_test(is_admin)
+def worklog_delete(request, pk):
+    worklog = get_object_or_404(WorkLog, pk=pk)
+    if request.method == 'POST':
+        worklog.delete()
+        messages.success(request, 'Work log deleted successfully!')
+        return redirect('worklog_list')
+    return render(request, 'workers/worklog_confirm_delete.html', {'worklog': worklog})
+
