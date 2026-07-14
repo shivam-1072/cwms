@@ -133,7 +133,7 @@ STATIC_URL = 'static/'
 
 # ===== ADDED THESE TWO LINES =====
 STATIC_ROOT = '/app/static'  # Where collectstatic will put files
-STATICFILES_DIRS = []        # No additional directories
+STATICFILES_DIRS = [BASE_DIR / 'static']        # No additional directories
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
