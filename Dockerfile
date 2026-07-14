@@ -1,7 +1,7 @@
 # 1. Use Python 3.12 slim image
 FROM python:3.12-slim
 
-# 2. Set working directroy
+# 2. Set working directory
 WORKDIR /app
 
 # 3. Copy only requirements first (for caching)
@@ -19,5 +19,7 @@ RUN python manage.py collectstatic --noinput
 # 7. Expose port 8000
 EXPOSE 8000
 
-# 8. Run with gunicorn
-CMD ["gunicorn", "--bind", "0.0.0.0:8000", "config.wsgi:application"]
+# 8. Run migrations and create superuser, then start Gunicorn
+CMD sh -c "python manage.py migrate && \
+           python manage.py createsuperuser --noinput && \
+           gunicorn --bind 0.0.0.0:8000 config.wsgi:application"
