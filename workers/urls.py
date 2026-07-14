@@ -39,4 +39,8 @@ urlpatterns = [
     path('worklog/create/', views.worklog_create, name='worklog_create'),
     path('worklog/<int:pk>/update/', views.worklog_update, name='worklog_update'),
     path('worklog/<int:pk>/delete/', views.worklog_delete, name='worklog_delete'),
+
+    # ====== Payslip ========
+    path('payslip/', views.payslip_form, name='payslip_form'),
+    path('payslip/generate/', views.generate_payslip, name='generate_payslip'),
 ]

@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
-from .models import Worker, Attendance, Payroll, Expense, UserProfile, WorkLog
+from .models import Worker, Attendance, Payroll, Expense, WorkLog
 from sites.models import Site
 from datetime import date, datetime, timedelta
 from django.db import models
@@ -11,6 +11,12 @@ from django.db.models import Count, Sum, Q
 from decimal import Decimal
 from django.http import HttpResponse
 from django.utils import timezone
+from reportlab.lib.pagesizes import A4
+from reportlab.pdfgen import canvas
+from reportlab.lib.units import inch
+import pandas as pd
+from io import BytesIO
+from datetime import datetime
 import csv
 
 # ============ HELPER FUNCTIONS ============
@@ -551,4 +557,119 @@ def worklog_delete(request, pk):
         messages.success(request, 'Work log deleted successfully!')
         return redirect('worklog_list')
     return render(request, 'workers/worklog_confirm_delete.html', {'worklog': worklog})
+
+# ============ PAYMENT SLIP VIEWS ============
+@login_required
+def payslip_form(request):
+    workers = Worker.objects.all()
+    return render(request, 'workers/payslip_form.html', {'workers': workers})
+
+@login_required
+def generate_payslip(request):
+    if request.method == 'POST':
+        worker_id = request.POST.get('worker')
+        month = request.POST.get('month')
+        format_type = request.POST.get('format', 'pdf')
+
+        if not worker_id or not month:
+            messages.error(request, 'Please select worker and month.')
+            return redirect('payslip_form')
+
+        worker = get_object_or_404(Worker, id=worker_id)
+        month_date = datetime.strptime(month, '%Y-%m').date()
+
+        payroll = Payroll.objects.filter(worker=worker, month=month_date).first()
+
+        if not payroll:
+            messages.error(request, f'No payroll found for {worker.name} in {month_date.strftime("%B %Y")}')
+            return redirect('payslip_form')
+
+        if format_type == 'pdf':
+            return generate_pdf_payslip(worker, payroll, month_date)
+        else:
+            return generate_excel_payslip(worker, payroll, month_date)
+
+    return redirect('payslip_form')
+
+def generate_pdf_payslip(worker, payroll, month_date):
+    response = HttpResponse(content_type='application/pdf')
+    response['Content-Disposition'] = f'attachment; filename="payslip_{worker.name}_{month_date.strftime("%B_%Y")}.pdf"'
+
+    c = canvas.Canvas(response, pagesize=A4)
+    width, height = A4
+
+    # Title
+    c.setFont("Helvetica-Bold", 16)
+    c.drawString(1*inch, height - 1*inch, "CONSTRUCTION WORKFORCE MANAGEMENT SYSTEM")
+
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(1*inch, height - 1.5*inch, f"PAYMENT SLIP - {month_date.strftime('%B %Y')}")
+
+    # Line
+    c.line(1*inch, height - 1.8*inch, 7.5*inch, height - 1.8*inch)
+
+    # Worker Details
+    c.setFont("Helvetica", 12)
+    y = height - 2.3*inch
+    details = [
+        f"Worker Name: {worker.name}",
+        f"Phone: {worker.phone}",
+        f"Site: {worker.site.name}",
+        f"Daily Wage: ₹{worker.daily_wage}",
+    ]
+    for detail in details:
+        c.drawString(1*inch, y, detail)
+        y -= 0.4*inch
+
+    # Salary Details
+    c.setFont("Helvetica-Bold", 12)
+    y -= 0.3*inch
+    c.drawString(1*inch, y, "SALARY DETAILS")
+    y -= 0.5*inch
+
+    c.setFont("Helvetica", 11)
+    salary_details = [
+        ("Working Days", payroll.working_days),
+        ("Gross Salary", f"₹{payroll.gross_salary}"),
+        ("Deductions", f"₹{payroll.deductions}"),
+        ("Net Salary", f"₹{payroll.net_salary}"),
+    ]
+    for label, value in salary_details:
+        c.drawString(1*inch, y, f"{label}: {value}")
+        y -= 0.4*inch
+
+    # Footer
+    c.setFont("Helvetica", 10)
+    c.drawString(1*inch, 1*inch, f"Generated on: {datetime.now().strftime('%d-%m-%Y %H:%M')}")
+    c.drawString(5.5*inch, 1*inch, "Payment Slip")
+
+    c.save()
+    return response
+
+def generate_excel_payslip(worker, payroll, month_date):
+    data = {
+        'Worker': [worker.name],
+        'Phone': [worker.phone],
+        'Site': [worker.site.name],
+        'Daily Wage': [float(worker.daily_wage)],
+        'Working Days': [payroll.working_days],
+        'Gross Salary': [float(payroll.gross_salary)],
+        'Deductions': [float(payroll.deductions)],
+        'Net Salary': [float(payroll.net_salary)],
+        'Month': [month_date.strftime('%B %Y')],
+    }
+
+    df = pd.DataFrame(data)
+    output = BytesIO()
+
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Payslip')
+
+    response = HttpResponse(
+        output.getvalue(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = f'attachment; filename="payslip_{worker.name}_{month_date.strftime("%B_%Y")}.xlsx"'
+
+    return response
 

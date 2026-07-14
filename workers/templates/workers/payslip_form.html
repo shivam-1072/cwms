@@ -1,0 +1,90 @@
+{% extends 'workers/base.html' %}
+
+{% block title %}Generate Payment Slip{% endblock %}
+
+{% block content %}
+    <h1>📄 Generate Payment Slip</h1>
+    
+    <div class="info-box">
+        <p>Select a worker and month to generate their payment slip.</p>
+        <p>Available in <strong>PDF</strong> and <strong>Excel</strong> formats.</p>
+    </div>
+    
+    <form method="post" action="{% url 'generate_payslip' %}">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>Worker:</label>
+            <select name="worker" required>
+                <option value="">Select Worker</option>
+                {% for worker in workers %}
+                    <option value="{{ worker.id }}">{{ worker.name }} ({{ worker.site.name }})</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <label>Month:</label>
+            <input type="month" name="month" required>
+        </div>
+        <div class="form-group">
+            <label>Format:</label>
+            <select name="format">
+                <option value="pdf">PDF</option>
+                <option value="excel">Excel</option>
+            </select>
+        </div>
+        <div class="form-group">
+            <button type="submit" class="btn btn-save">📥 Generate</button>
+            <a href="{% url 'dashboard' %}" class="btn-cancel">❌ Cancel</a>
+        </div>
+    </form>
+
+    <style>
+        .info-box {
+            background: #d1ecf1;
+            padding: 15px 20px;
+            border-radius: 8px;
+            margin: 15px 0;
+            border: 1px solid #bee5eb;
+        }
+        .form-group {
+            margin: 15px 0;
+        }
+        label {
+            display: inline-block;
+            width: 120px;
+            font-weight: bold;
+        }
+        input, select {
+            padding: 8px;
+            width: 250px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .btn {
+            padding: 10px 20px;
+            margin: 5px;
+            cursor: pointer;
+            border: none;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .btn-save {
+            background: #4CAF50;
+            color: white;
+        }
+        .btn-save:hover {
+            background: #45a049;
+        }
+        .btn-cancel {
+            background: #666;
+            color: white;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+        .btn-cancel:hover {
+            background: #555;
+        }
+    </style>
+{% endblock %}

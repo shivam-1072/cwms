@@ -1,16 +1,18 @@
 from django.db import models
-from sites.models import Site
+from sites.models import Site, Subcontractor
 
 class Worker(models.Model):
     name = models.CharField(max_length=100)
     phone = models.CharField(max_length=15)
     joining_date = models.DateField()
     daily_wage = models.DecimalField(max_digits=10, decimal_places=2)
-    site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='workers', null=True, blank=True)
+    site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='workers')
+    
+    # ===== NEW: Subcontractor =====
+    subcontractor = models.ForeignKey(Subcontractor, on_delete=models.SET_NULL, null=True, blank=True, related_name='workers')
     
     def __str__(self):
         return self.name
-
 
 class Attendance(models.Model):
     ATTENDANCE_CHOICES = [
@@ -19,23 +21,27 @@ class Attendance(models.Model):
         ('paid_leave', 'Paid Leave'),
         ('unpaid_leave', 'Unpaid Leave'),
     ]
-
+    
     worker = models.ForeignKey(Worker, on_delete=models.CASCADE, related_name='attendances')
     date = models.DateField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=ATTENDANCE_CHOICES, default='present')
+    
+    # ===== NEW: Extra wage for far sites =====
+    extra_wage = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Extra wage for far site")
+    is_far_site = models.BooleanField(default=False, help_text="Check if this is a far site")
+    
     created_at = models.DateTimeField(auto_now_add=True)
-
+    
     class Meta:
-        unique_together = ['worker', 'date']  # One attendance per worker per day
+        unique_together = ['worker', 'date']
         ordering = ['-date']
-
+    
     def __str__(self):
         return f"{self.worker.name} - {self.date} - {self.status}"
 
-
 class Payroll(models.Model):
     worker = models.ForeignKey(Worker, on_delete=models.CASCADE, related_name='payrolls')
-    month = models.DateField()  # First day of month
+    month = models.DateField()
     total_days = models.IntegerField(default=30)
     working_days = models.IntegerField()
     paid_leaves = models.IntegerField(default=0)
@@ -45,14 +51,13 @@ class Payroll(models.Model):
     deductions = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     net_salary = models.DecimalField(max_digits=10, decimal_places=2)
     generated_at = models.DateTimeField(auto_now_add=True)
-
+    
     class Meta:
         unique_together = ['worker', 'month']
         ordering = ['-month']
-
+    
     def __str__(self):
         return f"{self.worker.name} - {self.month.strftime('%B %Y')}"
-
 
 class Expense(models.Model):
     CATEGORY_CHOICES = [
@@ -62,7 +67,7 @@ class Expense(models.Model):
         ('equipment', 'Equipment'),
         ('other', 'Other'),
     ]
-
+    
     site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='expenses')
     category = models.CharField(max_length=20, choices=CATEGORY_CHOICES)
     description = models.TextField()
@@ -70,44 +75,31 @@ class Expense(models.Model):
     receipt = models.FileField(upload_to='receipts/', blank=True, null=True)
     date = models.DateField(auto_now_add=True)
     created_at = models.DateTimeField(auto_now_add=True)
-
+    
     class Meta:
         ordering = ['-date']
-
+    
     def __str__(self):
         return f"{self.site.name} - {self.category} - ₹{self.amount}"
 
-from django.contrib.auth.models import User
-
-class UserProfile(models.Model):
-    ROLE_CHOICES = [
-        ('admin', 'Admin'),
-        ('manager', 'Manager'),
-        ('supervisor', 'Supervisor'),
-    ]
-
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
-    role = models.CharField(max_length=20, choices=ROLE_CHOICES, default='admin')
-    phone = models.CharField(max_length=15, blank=True)
-    site = models.ForeignKey(Site, on_delete=models.SET_NULL, null=True, blank=True)
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    def __str__(self):
-        return f"{self.user.username} - {self.role}"
-
-
-# Added WorkLog model
 class WorkLog(models.Model):
     site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='work_logs')
     date = models.DateField(auto_now_add=True)
     work_done = models.TextField()
     pending_work = models.TextField(blank=True)
-    worker_count = models.IntegerField(default=0)
+    
+    # ===== NEW: Workers who worked =====
+    workers = models.ManyToManyField(Worker, related_name='work_logs', blank=True)
+    
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
-
+    
+    @property
+    def worker_count(self):
+        return self.workers.count()
+    
     def __str__(self):
         return f"{self.site.name} - {self.date}"
-
+    
     class Meta:
         ordering = ['-date']

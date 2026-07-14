@@ -26,10 +26,21 @@
             <label>Pending Work:</label>
             <textarea name="pending_work" rows="3" cols="50">{{ worklog.pending_work|default:'' }}</textarea>
         </div>
+        
+        <!-- ===== NEW: Workers who worked ===== -->
         <div class="form-group">
-            <label>Workers on Site:</label>
-            <input type="number" name="worker_count" value="{{ worklog.worker_count|default:'0' }}" min="0">
+            <label>Workers Who Worked:</label>
+            <select name="workers" multiple style="height:150px;">
+                {% for worker in all_workers %}
+                    <option value="{{ worker.id }}" 
+                        {% if worklog and worker in worklog.workers.all %}selected{% endif %}>
+                        {{ worker.name }} ({{ worker.site.name }})
+                    </option>
+                {% endfor %}
+            </select>
+            <small>Hold Ctrl to select multiple workers</small>
         </div>
+        
         <div>
             <button type="submit" class="btn btn-save">💾 Save</button>
             <a href="{% url 'worklog_list' %}" class="btn-cancel">❌ Cancel</a>
@@ -42,7 +53,7 @@
         }
         label {
             display: inline-block;
-            width: 150px;
+            width: 180px;
             font-weight: bold;
             vertical-align: top;
         }
@@ -51,6 +62,9 @@
             width: 350px;
             border: 1px solid #ddd;
             border-radius: 4px;
+        }
+        select[multiple] {
+            width: 350px;
         }
         .btn {
             padding: 10px 20px;
@@ -77,6 +91,12 @@
         }
         .btn-cancel:hover {
             background: #555;
+        }
+        small {
+            color: #666;
+            font-size: 12px;
+            display: block;
+            margin-top: 5px;
         }
     </style>
 {% endblock %}
