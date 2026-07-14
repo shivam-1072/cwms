@@ -155,6 +155,9 @@ LOGIN_URL = '/workers/login/'
 LOGIN_REDIRECT_URL = '/workers/dashboard/'
 LOGOUT_REDIRECT_URL = '/workers/login/'
 
+# For accessing same pass 
+ADMIN_URL = 'admin/'
+
 # Add decorators to protect views
 # We'll add @login_required to all views
 
