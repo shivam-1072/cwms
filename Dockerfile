@@ -24,5 +24,5 @@ EXPOSE 8000
 
 # 9. Run migrations + start Gunicorn
 CMD sh -c "python manage.py migrate && \
-           python manage.py createsuperuser --noinput --username $DJANGO_SUPERUSER_USERNAME --email $DJANGO_SUPERUSER_EMAIL || true && \
+           python -c \"import os; from django.contrib.auth.models import User; User.objects.create_superuser('admin', 'admin@example.com', os.environ.get('DJANGO_SUPERUSER_PASSWORD', 'Cwmssuperuser')) if not User.objects.filter(username='admin').exists() else None\" && \
            gunicorn --bind 0.0.0.0:8000 config.wsgi:application"
