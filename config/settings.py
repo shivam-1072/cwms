@@ -50,6 +50,7 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -134,6 +135,7 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')  # <--- THIS IS THE KEY FIX
 STATICFILES_DIRS = [
     os.path.join(BASE_DIR, 'static'),
 ]
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 
 # ===== Below are the old static  =====
 # STATIC_ROOT = '/app/static'  # Where collectstatic will put files
@@ -141,12 +143,12 @@ STATICFILES_DIRS = [
 
 # New media url
 MEDIA_URL = '/media/'
-MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 
 # Below are the old media url
 # MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
-# MEDIA_ROOT = BASE_DIR / 'media'
+MEDIA_ROOT = BASE_DIR / 'media'
 
 # Security Settings
 LOGIN_URL = '/workers/login/'
