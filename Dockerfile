@@ -24,5 +24,5 @@ EXPOSE 8000
 
 # 9. Run migrations + start Gunicorn
 CMD sh -c "python manage.py migrate && \
-           python manage.py createsuperuser --noinput || true && \
+           python manage.py createsuperuser --noinput --username admin || true && \
            gunicorn --bind 0.0.0.0:8000 config.wsgi:application"
