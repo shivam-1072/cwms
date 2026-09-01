@@ -3,6 +3,7 @@
 {% block title %}Add Expense{% endblock %}
 
 {% block content %}
+    <div class="form-wrapper">
     <h1>➕ Add Expense</h1>
     
     <form method="post" enctype="multipart/form-data">
@@ -43,8 +44,13 @@
             <a href="{% url 'expense_list' %}" class="btn-cancel">❌ Cancel</a>
         </div>
     </form>
+    </div>
 
     <style>
+        .form-wrapper {
+            text-align: center;
+        }
+
         .form-group {
             margin: 15px 0;
         }

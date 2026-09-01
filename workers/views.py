@@ -3,7 +3,7 @@ from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.contrib.auth.models import User
-from .models import Worker, Attendance, Payroll, Expense, WorkLog
+from .models import Worker, Attendance, Payroll, Expense, WorkLog, IncomingPayment
 from sites.models import Site
 from datetime import date, datetime, timedelta
 from django.db import models
@@ -16,7 +16,6 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import inch
 import pandas as pd
 from io import BytesIO
-from datetime import datetime
 import csv
 
 # ============ HELPER FUNCTIONS ============
@@ -37,13 +36,18 @@ def worker_list(request):
 @user_passes_test(is_admin)
 def worker_create(request):
     sites = Site.objects.all()
+    
     if request.method == 'POST':
         name = request.POST.get('name')
         phone = request.POST.get('phone')
         joining_date = request.POST.get('joining_date')
         daily_wage = request.POST.get('daily_wage')
         site_id = request.POST.get('site')
-
+        
+        if not phone.isdigit() or len(phone) != 10:
+            messages.error(request, 'Phone number must be exactly 10 digits.')
+            return render(request, 'workers/worker_form.html', {'sites': sites})
+        
         worker = Worker.objects.create(
             name=name,
             phone=phone,
@@ -53,7 +57,7 @@ def worker_create(request):
         )
         messages.success(request, f'Worker {worker.name} added successfully!')
         return redirect('worker_list')
-
+    
     return render(request, 'workers/worker_form.html', {'sites': sites})
 
 @login_required
@@ -63,11 +67,21 @@ def worker_update(request, pk):
     sites = Site.objects.all()
 
     if request.method == 'POST':
-        worker.name = request.POST.get('name')
-        worker.phone = request.POST.get('phone')
-        worker.joining_date = request.POST.get('joining_date')
-        worker.daily_wage = request.POST.get('daily_wage')
-        worker.site_id = request.POST.get('site')
+        name = request.POST.get('name')
+        phone = request.POST.get('phone')
+        joining_date = request.POST.get('joining_date')
+        daily_wage = request.POST.get('daily_wage')
+        site_id = request.POST.get('site')
+        
+        if not phone.isdigit() or len(phone) != 10:
+            messages.error(request, 'Phone number must be exactly 10 digits.')
+            return render(request, 'workers/worker_form.html', {'worker': worker, 'sites': sites})
+        
+        worker.name = name
+        worker.phone = phone
+        worker.joining_date = joining_date
+        worker.daily_wage = daily_wage
+        worker.site_id = site_id
         worker.save()
         messages.success(request, f'Worker {worker.name} updated successfully!')
         return redirect('worker_list')
@@ -91,7 +105,6 @@ def attendance_list(request):
     attendances = Attendance.objects.select_related('worker__site').all()
     sites = Site.objects.all()
 
-    # ===== NEW: Filter by site =====
     site_filter = request.GET.get('site')
     if site_filter:
         attendances = attendances.filter(worker__site_id=site_filter)
@@ -111,17 +124,22 @@ def attendance_create(request):
         worker_id = request.POST.get('worker')
         status = request.POST.get('status')
         attendance_date = request.POST.get('date', date.today())
+        extra_wage = request.POST.get('extra_wage', 0)
 
         worker = Worker.objects.get(id=worker_id)
 
         attendance, created = Attendance.objects.get_or_create(
             worker=worker,
             date=attendance_date,
-            defaults={'status': status}
+            defaults={
+                'status': status,
+                'extra_wage': extra_wage,
+            }
         )
 
         if not created:
             attendance.status = status
+            attendance.extra_wage = extra_wage
             attendance.save()
             messages.info(request, f'Attendance updated for {worker.name}')
         else:
@@ -153,7 +171,7 @@ def generate_payroll(request):
                 date__year=month_date.year,
                 date__month=month_date.month
             )
-
+            
             total_days = (month_date.replace(day=28) + timedelta(days=4)).replace(day=1) - timedelta(days=1)
             total_days = total_days.day
 
@@ -161,10 +179,12 @@ def generate_payroll(request):
             unpaid_leaves = attendances.filter(status='unpaid_leave').count()
             present_days = attendances.filter(status='present').count()
             absent_days = attendances.filter(status='absent').count()
+            
+            total_extra_wage = attendances.filter(status='present').aggregate(total=models.Sum('extra_wage'))['total'] or 0
 
             working_days = present_days + paid_leaves
             daily_wage = worker.daily_wage
-            gross_salary = working_days * daily_wage
+            gross_salary = (working_days * daily_wage) + total_extra_wage
             deductions = (absent_days + unpaid_leaves) * daily_wage
             net_salary = gross_salary - deductions
 
@@ -272,77 +292,77 @@ def dashboard(request):
     month_start = today.replace(day=1)
     week_start = today - timedelta(days=today.weekday())
     
-    # ===== CHANGED: Attendance for TODAY only =====
-    today_attendance = Attendance.objects.filter(date=today).values('status').annotate(count=Count('status'))
-    
-    attendance_summary = {
-        'present': 0,
-        'absent': 0,
-        'paid_leave': 0,
-        'unpaid_leave': 0,
-    }
-    for item in today_attendance:
-        attendance_summary[item['status']] = item['count']
-    
-    # ===== NEW: Date Filter for Expenses =====
     filter_type = request.GET.get('filter', 'today')
     
     if filter_type == 'today':
-        expense_start = today
-        expense_end = today
+        start_date = today
+        end_date = today
     elif filter_type == 'weekly':
-        expense_start = today - timedelta(days=7)
-        expense_end = today
+        start_date = week_start
+        end_date = today
     elif filter_type == 'quarterly':
-        expense_start = today - timedelta(days=90)
-        expense_end = today
+        start_date = today - timedelta(days=90)
+        end_date = today
     elif filter_type == 'yearly':
-        expense_start = today - timedelta(days=365)
-        expense_end = today
-    else:  # monthly (default)
-        expense_start = month_start
-        expense_end = today
+        start_date = today - timedelta(days=365)
+        end_date = today
+    else:
+        start_date = month_start
+        end_date = today
     
-    # Filter expenses by date range
-    filtered_expenses = Expense.objects.filter(
-        date__gte=expense_start,
-        date__lte=expense_end
-    )
-    
-    monthly_expenses = filtered_expenses.values('category').annotate(total=Sum('amount'))
-    
-    monthly_expense_totals = {
-        'material': 0,
-        'food': 0,
-        'fuel': 0,
-        'equipment': 0,
-        'other': 0,
-    }
-    for item in monthly_expenses:
-        monthly_expense_totals[item['category']] = float(item['total'])
-
-    # Worker statistics
     total_workers = Worker.objects.count()
     total_sites = Site.objects.count()
+    
+    today_attendance = Attendance.objects.filter(date=today).values('status').annotate(count=Count('status'))
+    attendance_summary = {'present': 0, 'absent': 0, 'paid_leave': 0, 'unpaid_leave': 0}
+    for item in today_attendance:
+        attendance_summary[item['status']] = item['count']
+    
+    # ===== EXPENSES =====
+    filtered_expenses = Expense.objects.filter(date__gte=start_date, date__lte=end_date)
+    total_expense = filtered_expenses.aggregate(total=Sum('amount'))['total'] or 0
 
-    # Weekly expenses (for chart)
+    # ===== PAYROLL =====
+    payrolls_in_range = Payroll.objects.filter(month__gte=start_date, month__lte=end_date)
+    monthly_payroll = payrolls_in_range.aggregate(total=Sum('net_salary'))['total'] or 0
+
+    # ===== INCOMING PAYMENTS =====
+    incoming_payments = IncomingPayment.objects.filter(
+        received_date__gte=start_date,
+        received_date__lte=end_date
+    )
+    total_incoming = incoming_payments.aggregate(total=Sum('amount'))['total'] or 0
+
+    # ===== PROFIT / LOSS =====
+    actual_profit = total_incoming - (total_expense + monthly_payroll)
+
+    # ===== EXPENSES BY CATEGORY =====
+    category_expenses = filtered_expenses.values('category').annotate(total=Sum('amount'))
+    monthly_expense_totals = {'material': 0, 'food': 0, 'fuel': 0, 'equipment': 0, 'other': 0}
+    for item in category_expenses:
+        monthly_expense_totals[item['category']] = float(item['total'])
+    
+    total_spent = total_expense + monthly_payroll
+    
+    # ===== WEEKLY EXPENSES =====
     weekly_expenses = Expense.objects.filter(
-        date__gte=week_start
+        date__gte=week_start, date__lte=end_date
     ).values('date').annotate(total=Sum('amount')).order_by('date')
-
     weekly_expense_data = [
         {'date': item['date'].strftime('%Y-%m-%d'), 'amount': float(item['total'])}
         for item in weekly_expenses
     ]
-
-    # Monthly payroll total
-    monthly_payroll = Payroll.objects.filter(
-        month=month_start
-    ).aggregate(total=Sum('net_salary'))['total'] or 0
-
-    # Total expense for profit/loss
-    total_expense = filtered_expenses.aggregate(total=Sum('amount'))['total'] or 0
-
+    
+    month_name = start_date.strftime('%B %Y')
+    if filter_type == 'today':
+        month_name = f"{today.strftime('%d %B %Y')} (Today)"
+    elif filter_type == 'weekly':
+        month_name = f"{start_date.strftime('%d %b')} - {end_date.strftime('%d %b %Y')} (Weekly)"
+    elif filter_type == 'quarterly':
+        month_name = f"{start_date.strftime('%d %b')} - {end_date.strftime('%d %b %Y')} (Quarterly)"
+    elif filter_type == 'yearly':
+        month_name = f"{start_date.strftime('%B %Y')} - {end_date.strftime('%B %Y')} (Yearly)"
+    
     context = {
         'total_workers': total_workers,
         'total_sites': total_sites,
@@ -351,13 +371,15 @@ def dashboard(request):
         'weekly_expense_data': weekly_expense_data,
         'monthly_payroll': float(monthly_payroll),
         'total_expense': float(total_expense),
-        'profit_loss': float(total_expense) - float(monthly_payroll),
-        'month_name': month_start.strftime('%B %Y'),
+        'total_spent': float(total_spent),
+        'total_incoming': float(total_incoming),
+        'actual_profit': float(actual_profit),
+        'month_name': month_name,
         'filter_type': filter_type,
-        'expense_start': expense_start.strftime('%d-%b-%Y'),
-        'expense_end': expense_end.strftime('%d-%b-%Y'),
+        'start_date': start_date.strftime('%d-%b-%Y'),
+        'end_date': end_date.strftime('%d-%b-%Y'),
     }
-
+    
     return render(request, 'workers/dashboard.html', context)
 
 # ============ AUTHENTICATION VIEWS ============
@@ -376,7 +398,6 @@ def user_login(request):
 
     return render(request, 'workers/login.html')
 
-# ===== CHANGED: Logout with confirmation =====
 @login_required
 def user_logout(request):
     if request.method == 'POST':
@@ -391,17 +412,29 @@ def attendance_summary(request):
     from django.utils import timezone
     from datetime import timedelta
     
-    # Get week start date from request or use current week
-    week_start_str = request.GET.get('week_start')
-    if week_start_str:
-        week_start = datetime.strptime(week_start_str, '%Y-%m-%d').date()
+    today = timezone.now().date()
+    
+    filter_type = request.GET.get('filter', 'weekly')
+    
+    if filter_type == 'today':
+        start_date = today
+        end_date = today
+    elif filter_type == 'weekly':
+        start_date = today - timedelta(days=today.weekday())
+        end_date = start_date + timedelta(days=6)
+    elif filter_type == 'monthly':
+        start_date = today.replace(day=1)
+        end_date = today
+    elif filter_type == 'quarterly':
+        start_date = today - timedelta(days=90)
+        end_date = today
+    elif filter_type == 'yearly':
+        start_date = today - timedelta(days=365)
+        end_date = today
     else:
-        today = timezone.now().date()
-        week_start = today - timedelta(days=today.weekday())
+        start_date = today - timedelta(days=today.weekday())
+        end_date = start_date + timedelta(days=6)
     
-    week_end = week_start + timedelta(days=6)
-    
-    # Get all workers
     workers = Worker.objects.all()
     total_workers = workers.count()
     
@@ -413,8 +446,8 @@ def attendance_summary(request):
     for worker in workers:
         attendances = Attendance.objects.filter(
             worker=worker,
-            date__gte=week_start,
-            date__lte=week_end
+            date__gte=start_date,
+            date__lte=end_date
         )
         
         present = attendances.filter(status='present').count()
@@ -435,14 +468,29 @@ def attendance_summary(request):
             'total': total,
         })
     
+    if filter_type == 'today':
+        period_label = f"{today.strftime('%d %B %Y')} (Today)"
+    elif filter_type == 'weekly':
+        period_label = f"{start_date.strftime('%d %b')} - {end_date.strftime('%d %b %Y')} (Weekly)"
+    elif filter_type == 'monthly':
+        period_label = f"{start_date.strftime('%B %Y')} (Monthly)"
+    elif filter_type == 'quarterly':
+        period_label = f"{start_date.strftime('%d %b')} - {end_date.strftime('%d %b %Y')} (Quarterly)"
+    elif filter_type == 'yearly':
+        period_label = f"{start_date.strftime('%B %Y')} - {end_date.strftime('%B %Y')} (Yearly)"
+    else:
+        period_label = f"{start_date.strftime('%d %b')} - {end_date.strftime('%d %b %Y')} (Weekly)"
+    
     return render(request, 'workers/attendance_summary.html', {
         'worker_summary': worker_summary,
         'total_workers': total_workers,
         'present_count': present_count,
         'absent_count': absent_count,
         'leave_count': leave_count,
-        'week_start': week_start,
-        'week_end': week_end,
+        'start_date': start_date,
+        'end_date': end_date,
+        'filter_type': filter_type,
+        'period_label': period_label,
     })
 
 @login_required
@@ -451,16 +499,31 @@ def attendance_export_summary(request):
     import csv
     from datetime import datetime, timedelta
     
-    week_start_str = request.GET.get('week_start')
-    if week_start_str:
-        week_start = datetime.strptime(week_start_str, '%Y-%m-%d').date()
-    else:
-        week_start = datetime.now().date() - timedelta(days=datetime.now().date().weekday())
+    today = datetime.now().date()
     
-    week_end = week_start + timedelta(days=6)
+    filter_type = request.GET.get('filter', 'weekly')
+    
+    if filter_type == 'today':
+        start_date = today
+        end_date = today
+    elif filter_type == 'weekly':
+        start_date = today - timedelta(days=today.weekday())
+        end_date = start_date + timedelta(days=6)
+    elif filter_type == 'monthly':
+        start_date = today.replace(day=1)
+        end_date = today
+    elif filter_type == 'quarterly':
+        start_date = today - timedelta(days=90)
+        end_date = today
+    elif filter_type == 'yearly':
+        start_date = today - timedelta(days=365)
+        end_date = today
+    else:
+        start_date = today - timedelta(days=today.weekday())
+        end_date = start_date + timedelta(days=6)
     
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = f'attachment; filename="attendance_summary_{week_start.strftime("%Y-%m-%d")}.csv"'
+    response['Content-Disposition'] = f'attachment; filename="attendance_summary_{start_date.strftime("%Y-%m-%d")}_to_{end_date.strftime("%Y-%m-%d")}.csv"'
     
     writer = csv.writer(response)
     writer.writerow(['Worker', 'Site', 'Present', 'Absent', 'Leaves', 'Total Days'])
@@ -469,8 +532,8 @@ def attendance_export_summary(request):
     for worker in workers:
         attendances = Attendance.objects.filter(
             worker=worker,
-            date__gte=week_start,
-            date__lte=week_end
+            date__gte=start_date,
+            date__lte=end_date
         )
         
         present = attendances.filter(status='present').count()
@@ -598,17 +661,14 @@ def generate_pdf_payslip(worker, payroll, month_date):
     c = canvas.Canvas(response, pagesize=A4)
     width, height = A4
 
-    # Title
     c.setFont("Helvetica-Bold", 16)
     c.drawString(1*inch, height - 1*inch, "CONSTRUCTION WORKFORCE MANAGEMENT SYSTEM")
 
     c.setFont("Helvetica-Bold", 14)
     c.drawString(1*inch, height - 1.5*inch, f"PAYMENT SLIP - {month_date.strftime('%B %Y')}")
 
-    # Line
     c.line(1*inch, height - 1.8*inch, 7.5*inch, height - 1.8*inch)
 
-    # Worker Details
     c.setFont("Helvetica", 12)
     y = height - 2.3*inch
     details = [
@@ -621,7 +681,6 @@ def generate_pdf_payslip(worker, payroll, month_date):
         c.drawString(1*inch, y, detail)
         y -= 0.4*inch
 
-    # Salary Details
     c.setFont("Helvetica-Bold", 12)
     y -= 0.3*inch
     c.drawString(1*inch, y, "SALARY DETAILS")
@@ -638,7 +697,6 @@ def generate_pdf_payslip(worker, payroll, month_date):
         c.drawString(1*inch, y, f"{label}: {value}")
         y -= 0.4*inch
 
-    # Footer
     c.setFont("Helvetica", 10)
     c.drawString(1*inch, 1*inch, f"Generated on: {datetime.now().strftime('%d-%m-%Y %H:%M')}")
     c.drawString(5.5*inch, 1*inch, "Payment Slip")
@@ -669,7 +727,30 @@ def generate_excel_payslip(worker, payroll, month_date):
         output.getvalue(),
         content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
-    response['Content-Disposition'] = f'attachment; filename="payslip_{worker.name}_{month_date.strftime("%B_%Y")}.xlsx"'
+    response['Content-Disposition'] = f'attachment; filename="payslip_{worker.name}_{month_date.strftime("%B %Y")}.xlsx"'
 
     return response
 
+@login_required
+def incoming_create(request):
+    sites = Site.objects.all()
+    
+    if request.method == 'POST':
+        site_id = request.POST.get('site')
+        amount = request.POST.get('amount')
+        description = request.POST.get('description', '')
+        
+        IncomingPayment.objects.create(
+            site_id=site_id,
+            amount=amount,
+            description=description
+        )
+        messages.success(request, f'₹{amount} added to incoming payments!')
+        return redirect('dashboard')
+    
+    return render(request, 'workers/incoming_form.html', {'sites': sites})
+
+@login_required
+def incoming_list(request):
+    payments = IncomingPayment.objects.select_related('site').all()
+    return render(request, 'workers/incoming_list.html', {'payments': payments})

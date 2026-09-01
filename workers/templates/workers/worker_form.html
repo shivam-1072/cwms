@@ -3,30 +3,38 @@
 {% block title %}{% if worker %}Edit{% else %}Add{% endif %} Worker{% endblock %}
 
 {% block content %}
+    <div class="form-wrapper">
     <h1>{% if worker %}✏️ Edit{% else %}➕ Add{% endif %} Worker</h1>
-    
+
     <form method="post">
         {% csrf_token %}
+        
         <div class="form-group">
             <label>Name:</label>
             <input type="text" name="name" value="{{ worker.name|default:'' }}" required>
         </div>
+        
         <div class="form-group">
             <label>Phone:</label>
-            <input type="text" name="phone" value="{{ worker.phone|default:'' }}" required>
+            <input type="text" name="phone" value="{{ worker.phone|default:'' }}"
+                   pattern="[0-9]{10}" maxlength="10"
+                   title="Phone number must be exactly 10 digits" required>
         </div>
+        
         <div class="form-group">
             <label>Joining Date:</label>
             <input type="date" name="joining_date" value="{{ worker.joining_date|date:'Y-m-d'|default:'' }}" required>
         </div>
+        
         <div class="form-group">
             <label>Daily Wage:</label>
             <input type="number" step="0.01" name="daily_wage" value="{{ worker.daily_wage|default:'' }}" required>
         </div>
+        
         <div class="form-group">
             <label>Site:</label>
-            <select name="site">
-                <option value="">None</option>
+            <select name="site" required>
+                <option value="">Select Site</option>
                 {% for site in sites %}
                     <option value="{{ site.id }}" {% if worker and worker.site.id == site.id %}selected{% endif %}>
                         {{ site.name }}
@@ -34,13 +42,20 @@
                 {% endfor %}
             </select>
         </div>
+        
         <div>
             <button type="submit" class="btn btn-save">💾 Save</button>
             <a href="{% url 'worker_list' %}" class="btn-cancel">❌ Cancel</a>
         </div>
     </form>
+    </div>
 
     <style>
+
+        .form-wrapper {
+            text-align: center;
+        }
+
         .form-group {
             margin: 15px 0;
         }

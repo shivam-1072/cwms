@@ -84,17 +84,46 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 import os
 
+# ===== LOCAL DEVELOPMENT: SQLite =====
 DATABASES = {
-    'default': {
-        'ENGINE': 'django.db.backends.postgresql',
-        'NAME': os.environ.get('DB_NAME', 'construction_workforce_db'),
-        'USER': os.environ.get('DB_USER', 'construction_admin'),
-        'PASSWORD': os.environ.get('DB_PASSWORD', 'Cwmsadmin'),
-        'HOST': os.environ.get('DB_HOST', 'localhost'),
-        'PORT': os.environ.get('DB_PORT', '5432'),
-    }
+   'default': {
+       'ENGINE': 'django.db.backends.sqlite3',
+       'NAME': BASE_DIR / 'db.sqlite3',
+   }
 }
 
+# ===== PRODUCTION: PostgreSQL (Render) =====
+DATABASES = {
+   'default': {
+       'ENGINE': 'django.db.backends.postgresql',
+       'NAME': os.environ.get('DB_NAME', 'construction_workforce_db'),
+       'USER': os.environ.get('DB_USER', 'construction_admin'),
+       'PASSWORD': os.environ.get('DB_PASSWORD', 'Cwmsadmin'),
+       'HOST': os.environ.get('DB_HOST', 'localhost'),
+       'PORT': os.environ.get('DB_PORT', '5432'),
+   }
+}
+
+if os.environ.get('RENDER'):
+    # Production: PostgreSQL (on Render)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.postgresql',
+            'NAME': os.environ.get('DB_NAME'),
+            'USER': os.environ.get('DB_USER'),
+            'PASSWORD': os.environ.get('DB_PASSWORD'),
+            'HOST': os.environ.get('DB_HOST'),
+            'PORT': os.environ.get('DB_PORT'),
+        }
+    }
+else:
+    # Local Development: SQLite (no Docker needed)
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators

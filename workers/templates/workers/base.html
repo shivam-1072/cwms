@@ -28,7 +28,7 @@
             z-index: 1000;
         }
         .navbar-brand {
-            font-size: 24px;
+            font-size: 20px;
             font-weight: 700;
             text-decoration: none;
             color: white;
@@ -48,7 +48,7 @@
         .navbar-link {
             color: rgba(255,255,255,0.7);
             text-decoration: none;
-            padding: 10px 18px;
+            padding: 10px 16px;
             border-radius: 8px;
             transition: all 0.3s ease;
             font-size: 14px;
@@ -156,6 +156,9 @@
             {% if user.is_superuser %}
             <a href="{% url 'payroll_list' %}" class="navbar-link {% if '/payroll' in request.path %}active{% endif %}">
                 💰 Payroll
+            </a>
+            <a href="{% url 'incoming_list' %}" class="navbar-link {% if '/incoming' in request.path %}active{% endif %}">
+            💰 Payment
             </a>
             <a href="{% url 'expense_list' %}" class="navbar-link {% if '/expenses' in request.path %}active{% endif %}">
                 💳 Expenses

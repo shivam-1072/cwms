@@ -177,13 +177,15 @@
 
 <!-- Filter Section -->
 <div class="filter-section">
-    <span class="label">📅 Filter Expenses:</span>
+    <span style="font-weight: bold; margin-right: 10px;">📅 Filter Expenses:</span>
     <a href="?filter=today" class="filter-btn {% if filter_type == 'today' %}active{% endif %}">Today</a>
     <a href="?filter=weekly" class="filter-btn {% if filter_type == 'weekly' %}active{% endif %}">Weekly</a>
     <a href="?filter=monthly" class="filter-btn {% if filter_type == 'monthly' %}active{% endif %}">Monthly</a>
     <a href="?filter=quarterly" class="filter-btn {% if filter_type == 'quarterly' %}active{% endif %}">Quarterly</a>
     <a href="?filter=yearly" class="filter-btn {% if filter_type == 'yearly' %}active{% endif %}">Yearly</a>
-    <span class="filter-date">{{ expense_start }} → {{ expense_end }}</span>
+    <span style="margin-left: 15px; color: #666; font-size: 14px;">
+        {{ start_date }} to {{ end_date }}
+    </span>
 </div>
 
 <!-- Stats -->
@@ -211,22 +213,47 @@
 </div>
 
 <!-- Profit/Loss -->
-<div class="profit-loss">
+<!-- Profit/Loss Section -->
+{% comment %} <div class="profit-loss">
     <div class="summary-item">
-        <div class="label">Total Payroll</div>
+        <div class="label">Total Payroll ({{ filter_type|title }})</div>
         <div class="value">₹{{ monthly_payroll|floatformat:2 }}</div>
     </div>
     <div class="summary-item">
-        <div class="label">Total Expenses</div>
+        <div class="label">Total Expenses ({{ filter_type|title }})</div>
         <div class="value">₹{{ total_expense|floatformat:2 }}</div>
     </div>
     <div class="summary-item">
-        <div class="label">Profit / Loss</div>
-        <div class="value {% if profit_loss < 0 %}loss{% else %}profit{% endif %}">
-            {% if profit_loss < 0 %}Loss{% else %}Profit{% endif %}: ₹{{ profit_loss|floatformat:2 }}
+        <div class="label">Total Spent ({{ filter_type|title }})</div>
+        <div class="value" style="color: #e94560;">
+            ₹{{ total_spent|floatformat:2 }}
         </div>
+        <div style="font-size:12px;color:#888;">Payroll + Expenses</div>
+    </div>
+</div> {% endcomment %}
+
+<div class="profit-loss">
+    <div class="summary-item">
+        <div class="label">Total Incoming ({{ filter_type|title }})</div>
+        <div class="value" style="color: #28a745;">₹{{ total_incoming|floatformat:2 }}</div>
+    </div>
+    <div class="summary-item">
+        <div class="label">Total Payroll ({{ filter_type|title }})</div>
+        <div class="value">₹{{ monthly_payroll|floatformat:2 }}</div>
+    </div>
+    <div class="summary-item">
+        <div class="label">Total Expenses ({{ filter_type|title }})</div>
+        <div class="value">₹{{ total_expense|floatformat:2 }}</div>
+    </div>
+    <div class="summary-item">
+        <div class="label">Actual Profit / Loss ({{ filter_type|title }})</div>
+        <div class="value {% if actual_profit < 0 %}loss{% else %}profit{% endif %}">
+            {% if actual_profit < 0 %}Loss{% else %}Profit{% endif %}: ₹{{ actual_profit|floatformat:2 }}
+        </div>
+        <div style="font-size:12px;color:#888;">Incoming - (Payroll + Expenses)</div>
     </div>
 </div>
+
 
 <!-- Charts -->
 <div class="chart-grid">

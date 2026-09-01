@@ -27,8 +27,7 @@ class Attendance(models.Model):
     status = models.CharField(max_length=20, choices=ATTENDANCE_CHOICES, default='present')
     
     # ===== NEW: Extra wage for far sites =====
-    extra_wage = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Extra wage for far site")
-    is_far_site = models.BooleanField(default=False, help_text="Check if this is a far site")
+    extra_wage = models.DecimalField(max_digits=10, decimal_places=2, default=0, help_text="Extra amount for far site (e.g., 150)")
     
     created_at = models.DateTimeField(auto_now_add=True)
     
@@ -103,3 +102,16 @@ class WorkLog(models.Model):
     
     class Meta:
         ordering = ['-date']
+
+class IncomingPayment(models.Model):
+    site = models.ForeignKey(Site, on_delete=models.CASCADE, related_name='incoming_payments')
+    amount = models.DecimalField(max_digits=15, decimal_places=2)
+    description = models.TextField(blank=True, help_text="e.g., 1st installment, completion payment, etc.")
+    received_date = models.DateField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+    
+    def __str__(self):
+        return f"{self.site.name} - ₹{self.amount} - {self.received_date}"
+    
+    class Meta:
+        ordering = ['-received_date']

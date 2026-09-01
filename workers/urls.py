@@ -1,7 +1,11 @@
 from django.urls import path
 from . import views
+from workers.admin import admin_site
 
 urlpatterns = [
+    
+    path('admin/', admin_site.urls),
+    
     # ========== AUTHENTICATION URLs ==========
     path('login/', views.user_login, name='login'),
     path('logout/', views.user_logout, name='logout'),  # Now shows confirmation
@@ -43,4 +47,10 @@ urlpatterns = [
     # ====== Payslip ========
     path('payslip/', views.payslip_form, name='payslip_form'),
     path('payslip/generate/', views.generate_payslip, name='generate_payslip'),
+    
+    # ====== Incoming Payments ========
+    path('incoming/', views.incoming_list, name='incoming_list'),
+    path('incoming/create/', views.incoming_create, name='incoming_create'),
+    
+    
 ]
